@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+{#-
+  Overrides Zola's built-in sitemap so that paginated index pages
+  (/community/help/page/2/ and friends) stay out of it: the thread pages they
+  list are already included individually, so the pagers only dilute the file.
+  Zola 0.23 has no config flag for this, hence the template override.
+-#}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{%- for sitemap_entry in entries %}
+{%- if "/page/" not in sitemap_entry.permalink %}
+    <url>
+        <loc>{{ sitemap_entry.permalink | escape_xml | safe }}</loc>
+        {%- if sitemap_entry.updated %}
+        <lastmod>{{ sitemap_entry.updated }}</lastmod>
+        {%- endif %}
+    </url>
+{%- endif %}
+{%- endfor %}
+</urlset>

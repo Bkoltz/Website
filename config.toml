@@ -1,6 +1,10 @@
 # The URL the site will be built for
 base_url = "https://webodm.org"
 
+# Used as the last-resort <title> and meta description fallback in base.html
+title = "WebODM - Drone Mapping Software"
+description = "Free and Open Source Drone Mapping Software"
+
 # Whether to automatically compile all Sass files in the sass directory
 compile_sass = false
 

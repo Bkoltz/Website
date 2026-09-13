@@ -3,18 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="{% if page is defined and page.description %}{{page.description}}{% endif %}">
+    <meta name="description" content="{% if page is defined and page.description %}{{ page.description }}{% elif section is defined and section.description %}{{ section.description }}{% else %}{{ config.description }}{% endif %}">
     <meta name="author" content="WebODM">
     <link rel="icon" type="image/png" href="/logo192.png" sizes="192x192"/>
 
     <!-- Open Graph Tags -->
     <meta property="og:title" content="{% if page is defined and page.title %}{{ page.title }}{% elif section is defined and section.title %}{{ section.title }}{% else %}{{ config.title }}{% endif %}">
-    <meta property="og:description" content="{% if page is defined and page.description %}{{page.description}}{% else %}WebODM - Free and Open Source Drone Mapping Software. Generate maps, point clouds, DEMs, 3D models and gaussian splats from aerial images.{% endif %}">
+    <meta property="og:description" content="{% if page is defined and page.description %}{{ page.description }}{% elif section is defined and section.description %}{{ section.description }}{% else %}WebODM - Free and Open Source Drone Mapping Software. Generate maps, point clouds, DEMs, 3D models and gaussian splats from aerial images.{% endif %}">
     <meta property="og:image" content="{{ get_url(path="images/social.webp") }}">
     {% if current_url %}
     <meta property="og:url" content="{{ current_url | safe }}">
     {% endif %}
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{% block og_type %}website{% endblock og_type %}">
+    <meta name="twitter:card" content="summary_large_image">
+    {% block canonical %}{% if current_url %}
+    <link rel="canonical" href="{{ current_url | safe }}">
+    {% endif %}{% endblock canonical %}
+    <meta name="robots" content="max-image-preview:large">
     
 
     <title>{% block title %}{% if page is defined and page.title %}{{ page.title }}{% elif section is defined and section.title %}{{ section.title }}{% else %}{{ config.title }}{% endif %}{% endblock title %}</title>
@@ -29,6 +34,7 @@
     <link rel="stylesheet" href="/css/main.css">
     
     {% block extra_css %}{% endblock extra_css %}
+    {% block structured_data %}{% endblock structured_data %}
 </head>
 <body>
     <!-- Navigation -->
@@ -102,6 +108,7 @@
                         <li><a href="/datasets">Datasets</a></li>
                         <li><a href="/gallery">Gallery</a></li>
                         <li><a href="/community">Community</a></li>
+                        <li><a href="/community/help/">Help &amp; Answers</a></li>
                         <li><a href="https://docs.webodm.org">Documentation</a></li>
                     </ul>
                 </div>

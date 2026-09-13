@@ -1,0 +1,5 @@
+{
+  "_help": "Discord source for the /community/help/ pages. Not secret: the bot token lives in the DISCORD_BOT_TOKEN repository secret. Get these ids by enabling Developer Mode in Discord, then right-clicking the server and the #help channel and choosing Copy ID.",
+  "guild_id": "1490218202033029212",
+  "help_channel_id": "1490494474588258436"
+}

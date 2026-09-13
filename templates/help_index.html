@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+  .help-index-page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 3.5rem 1rem 5rem;
+  }
+
+  .help-crumbs { font-size: 0.85rem; color: #64748b; margin-bottom: 1.25rem; }
+  .help-crumbs a { color: #64748b; text-decoration: none; }
+  .help-crumbs a:hover { color: var(--primary-color); text-decoration: underline; }
+  .help-crumbs .sep { margin: 0 0.4rem; color: #cbd5e1; }
+
+  .help-index-page h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+  .help-index-page .lead {
+    color: #475569;
+    font-size: 1rem;
+    line-height: 1.7;
+    margin-bottom: 1.75rem;
+  }
+
+  .help-list { list-style: none; padding: 0; margin: 0; }
+  .help-item {
+    position: relative;
+    display: flex;
+    gap: 0.9rem;
+    align-items: flex-start;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.1rem 1.35rem;
+    margin-bottom: 0.85rem;
+    background: #fff;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .help-item:hover { border-color: var(--primary-color); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+  /* min-width:0 lets a long unbroken word wrap instead of stretching the row. */
+  .help-item-body { flex: 1; min-width: 0; }
+  .help-item-avatar, .help-item-avatar-fallback {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .help-item-avatar { background: #e2e8f0; object-fit: cover; }
+  .help-item-avatar-fallback {
+    background: var(--primary-color);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.95rem;
+  }
+  .help-item h2 { font-size: 1.03rem; font-weight: 600; margin-bottom: 0.35rem; line-height: 1.4; }
+  .help-item h2 a { color: #1e293b; text-decoration: none; }
+  .help-item h2 a:hover { color: var(--primary-color); }
+  /* Stretch the title's link over the whole card so a click anywhere follows
+     it. Keeping one real <a> preserves the link semantics, the status bar URL
+     and open-in-new-tab; a nested <a> here would need position:relative and a
+     z-index to stay clickable above this overlay. */
+  .help-item h2 a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+  }
+  /* The visible focus ring lands on the title text only, so flag the whole
+     card for keyboard users the same way hover does. */
+  .help-item:focus-within { border-color: var(--primary-color); }
+  .help-item .excerpt { color: #64748b; font-size: 0.88rem; line-height: 1.6; margin-bottom: 0.5rem; }
+  .help-item .meta {
+    display: flex; flex-wrap: wrap; gap: 0.9rem;
+    font-size: 0.78rem; color: #94a3b8;
+  }
+  .help-item .meta .answers { color: #15803d; font-weight: 500; }
+
+  .help-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    color: #64748b;
+  }
+
+  .help-pager {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 2rem; font-size: 0.9rem;
+  }
+  .help-pager a {
+    color: var(--primary-color); text-decoration: none; font-weight: 500;
+  }
+  .help-pager a:hover { text-decoration: underline; }
+  .help-pager .pos { color: #94a3b8; }
+
+  .help-cta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.35rem 1.5rem;
+    text-align: center;
+    margin-top: 2.5rem;
+  }
+  .help-cta h2 { font-size: 1.05rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; }
+  .help-cta p { color: #475569; font-size: 0.9rem; margin-bottom: 0.9rem; }
+  .help-btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: var(--primary-color); color: #fff;
+    border-radius: 8px; padding: 0.5rem 1.1rem;
+    font-size: 0.9rem; font-weight: 500; text-decoration: none;
+  }
+  .help-btn:hover { background: var(--primary-dark); color: #fff; }
+
+  .help-notice {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.82rem;
+    color: #64748b;
+    line-height: 1.7;
+  }
+  .help-notice h2 { font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 0.4rem; }
+  .help-notice a { color: var(--primary-color); }
+
+  @media (max-width: 640px) {
+    .help-index-page { padding: 2rem 1rem 3rem; }
+    .help-index-page h1 { font-size: 1.5rem; }
+  }
+</style>
+{% endblock extra_css %}
+
+{# Zola always emits /page/1/ as a duplicate of the section root, and leaves
+   current_url undefined on pager pages, so canonicalise them explicitly. #}
+{% block canonical %}
+<link rel="canonical" href="{% if paginator.current_index > 1 %}{{ paginator.base_url }}{{ paginator.current_index }}/{% else %}{{ paginator.first | safe }}{% endif %}">
+{% endblock canonical %}
+
+{% block structured_data %}
+<script type="application/ld+json">{
+"@context":"https://schema.org",
+"@type":"CollectionPage",
+"name":"WebODM Help & Answers",
+"url":"{{ config.base_url }}/community/help/",
+"description":"Answered WebODM questions from the community Discord.",
+"breadcrumb":{"@type":"BreadcrumbList","itemListElement":[
+{"@type":"ListItem","position":1,"name":"Home","item":"{{ config.base_url }}/"},
+{"@type":"ListItem","position":2,"name":"Community","item":"{{ config.base_url }}/community/"},
+{"@type":"ListItem","position":3,"name":"Help","item":"{{ config.base_url }}/community/help/"}]}
+}</script>
+{% endblock structured_data %}
+
+{% block content %}
+<div class="help-index-page">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/community/">Community</a><span class="sep">/</span>
+    <span>Help</span>
+  </nav>
+
+  <h1>Help &amp; Answers</h1>
+  <p class="lead">
+    Questions answered by the <a href="/community">community</a>.
+  </p>
+
+  {% if paginator.pages | length > 0 %}
+  <ul class="help-list">
+    {% for p in paginator.pages %}
+    <li class="help-item">
+      {# The asker's avatar. No visible name here, so the identity has to reach
+         assistive tech through alt / aria-label instead of an adjacent label. #}
+      {% if p.extra.author_avatar %}
+      <img class="help-item-avatar" src="{{ p.extra.author_avatar }}"
+           alt="{{ p.extra.author_name }}" width="40" height="40"
+           loading="lazy" decoding="async">
+      {% else %}
+      <div class="help-item-avatar-fallback" role="img" aria-label="{{ p.extra.author_name }}">
+        {{ p.extra.author_name | truncate(length=1, end="") | upper }}
+      </div>
+      {% endif %}
+      <div class="help-item-body">
+        <h2><a href="{{ p.permalink }}">{{ p.title }}</a></h2>
+        <p class="excerpt">{{ p.description }}</p>
+        <div class="meta">
+          <span class="answers">
+            <i class="bi bi-chat-left-text"></i>
+            {{ p.extra.answer_count }} {% if p.extra.answer_count == 1 %}reply{% else %}replies{% endif %}
+          </span>
+          <span>{{ p.extra.asked_at_human }}</span>
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+
+  {% if paginator.number_pagers > 1 %}
+  <nav class="help-pager" aria-label="Pagination">
+    {% if paginator.previous %}
+    <a href="{{ paginator.previous }}">&larr; Newer</a>
+    {% else %}<span></span>{% endif %}
+    <span class="pos">Page {{ paginator.current_index }} of {{ paginator.number_pagers }}</span>
+    {% if paginator.next %}
+    <a href="{{ paginator.next }}">Older &rarr;</a>
+    {% else %}<span></span>{% endif %}
+  </nav>
+  {% endif %}
+
+  {% else %}
+  <div class="help-empty">
+    <i class="bi bi-chat-dots" style="font-size: 2.5rem;"></i>
+    <p class="mt-3 mb-0">
+      No discussions have been mirrored yet. Run
+      <code>python scripts/sync_discord.py</code> to populate this section.
+    </p>
+  </div>
+  {% endif %}
+
+  {# Mirroring explanation and removal-request route. #}
+  <div class="help-notice" id="removal">
+    <p>
+      These pages mirror the public <strong>#help</strong> discussions from
+      <a href="https://discord.gg/RxHPXCSMBS" rel="noopener" target="_blank">Discord</a>
+      so that they can be searched on the web. Authors own the rights to their messages. Only
+      threads that received a reply are published. If you took part in a discussion and would
+      like your messages taken down, open an issue
+      on <a href="https://github.com/WebODM/Website/issues" rel="noopener" target="_blank">GitHub</a>.
+      Deleting the original message on Discord also removes it here at the next sync.
+    </p>
+  </div>
+</div>
+{% endblock content %}

@@ -4,6 +4,9 @@ on:
   push:
     branches: [ master ]
   workflow_dispatch:
+  # Called by sync-discord.yml: a push made with the default GITHUB_TOKEN does
+  # not trigger other workflows, so the sync job invokes this one directly.
+  workflow_call:
 
 permissions:
   contents: read
@@ -38,6 +41,9 @@ jobs:
         run: |
           pip install Pillow requests
           python scripts/build_gallery.py
+
+      - name: Build help pages
+        run: python scripts/build_help_pages.py
 
       - name: Build with Zola
         run: zola build

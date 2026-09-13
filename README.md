@@ -31,7 +31,7 @@ webodm-web/
 ├── start.sh           # Helper script to run the dev server
 ├── content/           # Markdown pages and blog posts
 │   └── blog/          # Blog entries
-├── data/              # JSON data files (e.g. datasets)
+├── data/              # JSON data files (e.g. datasets) + the Discord archive
 ├── public/            # Pre-built static assets (CSS, images)
 ├── static/            # Static files copied as-is to the output
 ├── templates/         # Tera HTML templates
@@ -42,6 +42,125 @@ webodm-web/
 │   └── datasets.html  # Datasets page
 └── themes/            # Zola themes (if any)
 ```
+
+## Discord help archive (`/community/help/`)
+
+Question-and-answer threads from the `#help` channel of the
+[WebODM Discord](https://discord.gg/RxHPXCSMBS) are mirrored into a SQLite
+archive and published as one static page per thread, so the answers are
+findable by search engines.
+
+```
+Discord REST API
+      │  scripts/sync_discord.py       (weekly, or on demand)
+      ▼
+data/discord.sql                       committed text dump (source of truth)
+static/images/help/                    committed mirrored images
+      │  scripts/build_help_pages.py   (runs on every build)
+      ▼
+content/community/help/*.md            generated, gitignored
+      │  zola build
+      ▼
+public/community/help/<slug>/
+```
+
+Attachment URLs on Discord's CDN are signed and expire after about 24 hours, so
+images are downloaded, resized and re-encoded to WebP at sync time rather than
+hot-linked. Avatars are mirrored for the same reason.
+
+The expiring `ex`/`is`/`hm` signature is deliberately not stored in
+`data/discord.sql` -- it would be stale noise in every diff -- so
+`attachments.discord_url` holds the bare URL. The CDN answers **404** to an
+unsigned attachment URL, so the media pass re-signs in batches of 50 through
+`POST /attachments/refresh-urls` immediately before downloading. Avatar URLs are
+built from the user id and hash and need no signature, which is why a broken
+sync shows every avatar succeeding and every attachment failing.
+
+### Running it locally
+
+No Discord token is needed to build the site: `build_help_pages.py` reads only
+the committed archive.
+
+```bash
+python scripts/build_help_pages.py    # regenerate the pages
+zola build                            # or just ./start.sh
+```
+
+To exercise the crawler without a token, replay the recorded fixtures:
+
+```bash
+python scripts/sync_discord.py --fixtures scripts/fixtures/discord \
+    --db /tmp/test.sqlite3 \
+    --guild-id 900000000000000001 --channel-id 900000000000000002
+```
+
+`--db` moves the text dump with it -- that run writes `/tmp/test.sql`, never the
+committed `data/discord.sql` -- so a fixture run cannot disturb the real
+archive. `build_help_pages.py --db` and `help_db.py [dump|restore] <db_path>`
+follow the same rule.
+
+To run a real sync you need the bot token (see below):
+
+```bash
+export DISCORD_BOT_TOKEN=...
+python scripts/sync_discord.py --limit 5 --dry-run   # crawl, write nothing
+python scripts/sync_discord.py --limit 5             # small real sync
+python scripts/sync_discord.py                       # incremental, all threads
+python scripts/sync_discord.py --full                # re-read every thread
+```
+
+Run the renderer tests with `python -m unittest discover -s scripts -p 'test_*.py'`.
+
+### One-time Discord setup
+
+1. Create an application at <https://discord.com/developers/applications>.
+2. **Bot** tab → copy the token → add it as the repository secret
+   **`DISCORD_BOT_TOKEN`**.
+3. **Bot** tab → turn **Public Bot** off.
+4. **Bot** tab → **Privileged Gateway Intents** → enable **Message Content
+   Intent**. This is self-serve below 10,000 users, and it is required: the
+   intent gates the REST API too, not only the Gateway. Without it Discord
+   returns empty message content with no error. (`sync_discord.py` detects this
+   and aborts rather than publishing blank pages.)
+5. Invite the bot — a server admin with `MANAGE_GUILD` has to do this:
+   `https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot&permissions=66560`
+   Permission `66560` is `VIEW_CHANNEL` + `READ_MESSAGE_HISTORY`; the bot cannot
+   post anything.
+6. Check that the bot's role really has *View Channel* and *Read Message
+   History* on `#help` — a channel-level overwrite can deny what the
+   server-wide role grants.
+7. Enable Developer Mode in Discord, right-click the server and `#help` →
+   **Copy ID**, and set them either in `data/discord_config.json` or as the
+   repository variables `DISCORD_GUILD_ID` and `DISCORD_HELP_CHANNEL_ID`.
+
+### What gets published
+
+Only threads that earned a page: at least one substantive reply from someone
+other than the person who asked, a question of at least 80 characters, and at
+least 350 characters of discussion overall. Thin threads are skipped entirely
+rather than marked `noindex`, which also keeps them out of the sitemap.
+
+### Removing someone's content
+
+Add their user id or username to `data/discord_optout.json` and the next sync
+redacts their messages and drops any thread they started, retroactively, along
+with the mirrored images. For an immediate hard delete:
+
+```bash
+python scripts/sync_discord.py --purge-user <discord_user_id>
+```
+
+Messages deleted on Discord disappear from the site at the next sync
+automatically. The `/community/help/` page explains this to readers and gives a
+route for removal requests, as Discord's developer terms require.
+
+### Automation
+
+`.github/workflows/sync-discord.yml` runs the sync every Monday (and on manual
+dispatch), commits the archive, then calls `deploy.yml` as a reusable workflow.
+The explicit call is deliberate: a push made with the default `GITHUB_TOKEN`
+does not trigger another workflow's `on: push`, so a plain commit would never
+deploy.
 
 ## Building for Production
 

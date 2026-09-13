@@ -1,0 +1,367 @@
+{% extends "base.html" %}
+
+{% block og_type %}article{% endblock og_type %}
+
+{% block structured_data %}
+<script type="application/ld+json">{{ page.extra.jsonld | safe }}</script>
+<meta property="article:published_time" content="{{ page.date }}">
+<meta property="article:modified_time" content="{{ page.updated }}">
+{% endblock structured_data %}
+
+{% block extra_css %}
+<style>
+  .help-thread-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 3rem 1rem 5rem;
+  }
+
+  /* ── breadcrumbs ── */
+  .help-crumbs {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+  }
+  .help-crumbs a { color: #64748b; text-decoration: none; }
+  .help-crumbs a:hover { color: var(--primary-color); text-decoration: underline; }
+  .help-crumbs .sep { margin: 0 0.4rem; color: #cbd5e1; }
+
+  .help-thread-page h1 {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── message cards ── */
+  .help-msg {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.35rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .help-msg.is-question { border-color: #cbd5e1; background: #fcfdff; }
+  .help-msg.is-accepted { border-color: #86efac; background: #f6fefa; }
+
+  .help-msg-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+    font-size: 0.88rem;
+  }
+  .help-avatar {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #e2e8f0;
+    object-fit: cover;
+  }
+  .help-avatar-fallback {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--primary-color);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 600; font-size: 0.85rem;
+  }
+  .help-author { font-weight: 600; color: #1e293b; }
+  .help-when { color: #94a3b8; font-size: 0.82rem; }
+  .help-badge {
+    margin-left: auto;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .help-badge.accepted { background: #dcfce7; color: #15803d; }
+  .help-badge.op { background: #f1f5f9; color: #64748b; }
+
+  .help-body { color: #334155; line-height: 1.7; font-size: 0.95rem; }
+  .help-body p { margin-bottom: 0.75rem; }
+  .help-body p:last-child { margin-bottom: 0; }
+  .help-body h3, .help-body h4, .help-body h5 {
+    font-size: 1rem; font-weight: 600; color: #1e293b; margin: 1rem 0 0.5rem;
+  }
+  .help-body ul, .help-body ol { margin-bottom: 0.75rem; padding-left: 1.4rem; }
+  .help-body li { margin-bottom: 0.25rem; }
+  .help-body code {
+    background: #f1f5f9;
+    color: #be123c;
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    font-size: 0.87em;
+  }
+  .help-body pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 0.9rem 1.1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+  }
+  .help-body pre code { background: none; color: inherit; padding: 0; font-size: 0.85rem; }
+  .help-body blockquote {
+    border-left: 3px solid #cbd5e1;
+    padding-left: 0.9rem;
+    color: #64748b;
+    margin-bottom: 0.75rem;
+  }
+  .help-body blockquote p:last-child { margin-bottom: 0; }
+  .help-body a { color: var(--primary-color); }
+  .d-mention {
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 4px;
+    padding: 0 0.25rem;
+    font-weight: 500;
+  }
+  .d-emoji { vertical-align: -0.2em; }
+  .d-spoiler {
+    background: #334155;
+    color: transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .d-spoiler.revealed { background: #f1f5f9; color: inherit; user-select: auto; }
+  .help-redacted { color: #94a3b8; font-style: italic; }
+
+  .help-reply-to {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    margin-bottom: 0.5rem;
+  }
+  .help-reply-to a { color: #94a3b8; }
+
+  /* ── images ── */
+  .help-images {
+    display: flex; flex-wrap: wrap; gap: 0.6rem;
+    margin-top: 0.9rem;
+  }
+  .help-images a { display: block; max-width: 100%; }
+  .help-images img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+  .help-files { margin-top: 0.7rem; font-size: 0.85rem; color: #94a3b8; }
+
+  .help-reactions { display: flex; gap: 0.4rem; margin-top: 0.9rem; flex-wrap: wrap; }
+  .help-reaction {
+    background: #f1f5f9;
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    font-size: 0.78rem;
+    color: #475569;
+  }
+
+  .help-answers-heading {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 2rem 0 1rem;
+  }
+
+  /* ── footer blocks ── */
+  .help-cta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 1.35rem 1.5rem;
+    text-align: center;
+    margin-top: 2rem;
+  }
+  .help-cta h2 { font-size: 1.05rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; }
+  .help-cta p { color: #475569; font-size: 0.9rem; margin-bottom: 0.9rem; }
+  .help-btn {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .help-btn:hover { background: var(--primary-dark); color: #fff; }
+  .help-btn.secondary {
+    background: #fff; color: var(--primary-color); border: 1px solid #cbd5e1;
+  }
+  .help-btn.secondary:hover { background: #f8fafc; color: var(--primary-dark); }
+
+  .help-related { margin-top: 2rem; }
+  .help-related h2 { font-size: 1.05rem; font-weight: 600; color: #1e293b; margin-bottom: 0.75rem; }
+  .help-related ul { list-style: none; padding: 0; margin: 0; }
+  .help-related li { margin-bottom: 0.45rem; }
+  .help-related a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.92rem;
+  }
+  .help-related a:hover { text-decoration: underline; }
+
+  .help-notice {
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e2e8f0;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.6;
+  }
+  .help-notice a { color: #64748b; }
+
+  @media (max-width: 640px) {
+    .help-thread-page { padding: 2rem 1rem 3rem; }
+    .help-thread-page h1 { font-size: 1.45rem; }
+    .help-msg { padding: 1rem 1.1rem; }
+  }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+{% set e = page.extra %}
+<div class="help-thread-page">
+
+  <nav class="help-crumbs" aria-label="Breadcrumb">
+    <a href="/">Home</a><span class="sep">/</span>
+    <a href="/community/">Community</a><span class="sep">/</span>
+    <a href="/community/help/">Help</a><span class="sep">/</span>
+    <span>{{ page.title }}</span>
+  </nav>
+
+  <h1>{{ page.title }}</h1>
+
+  <!-- Question -->
+  <article class="help-msg is-question">
+    <div class="help-msg-head">
+      {% if e.author_avatar %}
+      <img class="help-avatar" src="{{ e.author_avatar }}" alt="" width="32" height="32" loading="lazy" decoding="async">
+      {% else %}
+      <div class="help-avatar-fallback" aria-hidden="true">{{ e.author_name | truncate(length=1, end="") | upper }}</div>
+      {% endif %}
+      <span class="help-author">{{ e.author_name }}</span>
+      <time class="help-when" datetime="{{ page.date }}">{{ e.asked_at_human }}</time>
+    </div>
+    <div class="help-body">{{ e.question_html | safe }}</div>
+    {% if e.question_images %}
+    <div class="help-images">
+      {% for img in e.question_images %}
+      <a href="{{ img.src }}" target="_blank" rel="noopener">
+        <img src="{{ img.src }}" alt="{{ img.alt }}"
+             {% if img.w %}width="{{ img.w }}" height="{{ img.h }}"{% endif %}
+             loading="lazy" decoding="async">
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if e.question_files %}
+    <div class="help-files">
+      <i class="bi bi-paperclip"></i>
+      {% for f in e.question_files %}{{ f.name }}{% if not loop.last %}, {% endif %}{% endfor %}
+      &mdash; <a href="{{ e.discord_url }}" rel="nofollow noopener" target="_blank">view on Discord</a>
+    </div>
+    {% endif %}
+  </article>
+
+  <!-- Answers -->
+  {% if e.answers %}
+  <h2 class="help-answers-heading">
+    {{ e.answer_count }} {% if e.answer_count == 1 %}Reply{% else %}Replies{% endif %}
+  </h2>
+
+  {% for a in e.answers %}
+  <article class="help-msg{% if a.accepted %} is-accepted{% endif %}" id="a-{{ a.idx }}">
+    <div class="help-msg-head">
+      {% if a.author_avatar %}
+      <img class="help-avatar" src="{{ a.author_avatar }}" alt="" width="32" height="32" loading="lazy" decoding="async">
+      {% else %}
+      <div class="help-avatar-fallback" aria-hidden="true">{{ a.author_name | truncate(length=1, end="") | upper }}</div>
+      {% endif %}
+      <span class="help-author">{{ a.author_name }}</span>
+      <time class="help-when" datetime="{{ a.created_iso }}">{{ a.created_human }}</time>
+      {% if a.accepted %}
+      <span class="help-badge accepted"><i class="bi bi-check-circle-fill"></i> Best answer</span>
+      {% elif a.is_op %}
+      <span class="help-badge op">OP</span>
+      {% endif %}
+    </div>
+    {% if a.reply_to >= 0 %}
+    <div class="help-reply-to">
+      <i class="bi bi-arrow-return-right"></i>
+      <a href="#a-{{ a.reply_to }}">in reply to an earlier message</a>
+    </div>
+    {% endif %}
+    <div class="help-body">{{ a.html | safe }}</div>
+    {% if a.images %}
+    <div class="help-images">
+      {% for img in a.images %}
+      <a href="{{ img.src }}" target="_blank" rel="noopener">
+        <img src="{{ img.src }}" alt="{{ img.alt }}"
+             {% if img.w %}width="{{ img.w }}" height="{{ img.h }}"{% endif %}
+             loading="lazy" decoding="async">
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if a.reactions %}
+    <div class="help-reactions">
+      {% for r in a.reactions %}
+      <span class="help-reaction">{{ r.emoji }} {{ r.count }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </article>
+  {% endfor %}
+  {% endif %}
+
+  <!-- CTA -->
+  <div class="help-cta">
+    <h2>Need more help?</h2>
+    <p>This discussion happened in the WebODM community Discord. Join and ask your own question.</p>
+    <a class="help-btn" href="https://discord.gg/RxHPXCSMBS" rel="noopener" target="_blank">
+      <i class="bi bi-discord"></i> Join
+    </a>
+    <a class="help-btn secondary" href="{{ e.discord_url }}" rel="nofollow noopener" target="_blank">
+      View Original Thread
+    </a>
+  </div>
+
+  {% if e.related %}
+  <div class="help-related">
+    <h2>Related questions</h2>
+    <ul>
+      {% for r in e.related %}
+      <li><a href="{{ r.url }}">{{ r.title }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <p class="help-notice">
+    This page mirrors a public discussion from the
+    <a href="https://discord.gg/RxHPXCSMBS" rel="noopener" target="_blank">WebODM Discord</a>.
+    Authors keep the rights to their own words. If you took part and would like your
+    messages removed, see <a href="/community/help/#removal">how to request removal</a>.
+  </p>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  document.querySelectorAll('.d-spoiler').forEach(function (el) {
+    el.addEventListener('click', function () { el.classList.toggle('revealed'); });
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') {
+        ev.preventDefault();
+        el.classList.toggle('revealed');
+      }
+    });
+  });
+</script>
+{% endblock extra_js %}
