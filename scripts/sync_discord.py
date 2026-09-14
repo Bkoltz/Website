@@ -449,15 +449,18 @@ RESERVED_SLUGS = {
 
 def assign_slug(conn, thread_id: str, title: str) -> str:
     """
-    Return the thread's permanent slug, minting one on first sight.
+    Return the slug for the thread's current title.
 
-    A slug is never recomputed: renaming a thread on Discord changes its title
-    but must not change its URL.
+    The slug tracks the title: renaming a thread on Discord changes its URL, and
+    the old one is deliberately left to 404 rather than redirected. slug_history
+    still records every slug a thread has used, but nothing routes on it.
+
+    Collision suffixes are stable once settled. If two threads slugify the same
+    and end up as `foo` and `foo-2`, a later sync recomputes both and keeps that
+    split: the second still finds the first holding `foo`, and the first finds
+    nothing holding it. Only a sync that first sees both at once decides which
+    gets the bare slug, and that is first-come.
     """
-    row = conn.execute("SELECT slug FROM threads WHERE id = ?", (thread_id,)).fetchone()
-    if row and row["slug"]:
-        return row["slug"]
-
     base = help_db.slugify(title)
     if len(base) < 3 or base in RESERVED_SLUGS or base.startswith("page-"):
         # Emoji-only, CJK, empty or colliding-with-routing titles get a stable
@@ -476,8 +479,12 @@ def assign_slug(conn, thread_id: str, title: str) -> str:
         slug = f"{base}-{n}"
 
     conn.execute(
-        "INSERT OR IGNORE INTO slug_history (slug, thread_id, is_current, created_at) "
-        "VALUES (?,?,1,?)",
+        "UPDATE slug_history SET is_current = 0 WHERE thread_id = ? AND slug != ?",
+        (thread_id, slug),
+    )
+    conn.execute(
+        "INSERT INTO slug_history (slug, thread_id, is_current, created_at) "
+        "VALUES (?,?,1,?) ON CONFLICT(slug) DO UPDATE SET is_current = 1",
         (slug, thread_id, now_iso()),
     )
     return slug
@@ -747,10 +754,10 @@ def sync_thread(conn, client: DiscordClient, thread: dict, cfg: dict,
         )
 
     conn.execute(
-        "UPDATE threads SET title=?, last_message_id=?, message_count=?, "
+        "UPDATE threads SET title=?, slug=?, last_message_id=?, message_count=?, "
         "total_message_sent=?, archived=?, locked=?, last_synced_at=?, deleted_at=NULL "
         "WHERE id=?",
-        (title, thread.get("last_message_id"), thread.get("message_count") or 0,
+        (title, slug, thread.get("last_message_id"), thread.get("message_count") or 0,
          thread.get("total_message_sent") or 0, 1 if meta.get("archived") else 0,
          1 if meta.get("locked") else 0, now_iso(), tid),
     )

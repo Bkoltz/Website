@@ -317,7 +317,7 @@
       </div>
       {% endif %}
       <div class="help-item-body">
-        <h2><a href="{{ p.permalink }}">{{ p.title }}</a></h2>
+        <h2><a href="{{ p.path }}">{{ p.title }}</a></h2>
         <p class="excerpt">{{ p.description }}</p>
         <div class="meta">
           <span class="answers">
@@ -331,14 +331,17 @@
     {% endfor %}
   </ul>
 
+  {# Internal links are kept root-relative so a build made with the wrong
+     base_url (a plain `zola build` during development) is still browsable.
+     The canonical tag above and the sitemap stay absolute, as they must be. #}
   {% if paginator.number_pagers > 1 %}
   <nav class="help-pager" aria-label="Pagination">
     {% if paginator.previous %}
-    <a href="{{ paginator.previous }}">&larr; Newer</a>
+    <a href="{{ paginator.previous | replace(from=config.base_url, to='') }}">&larr; Newer</a>
     {% else %}<span></span>{% endif %}
     <span class="pos">Page {{ paginator.current_index }} of {{ paginator.number_pagers }}</span>
     {% if paginator.next %}
-    <a href="{{ paginator.next }}">Older &rarr;</a>
+    <a href="{{ paginator.next | replace(from=config.base_url, to='') }}">Older &rarr;</a>
     {% else %}<span></span>{% endif %}
   </nav>
   {% endif %}
