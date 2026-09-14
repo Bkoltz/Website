@@ -37,14 +37,20 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install Pillow requests
+        run: pip install Pillow requests cryptography
 
       - name: Sync from Discord
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_GUILD_ID: ${{ vars.DISCORD_GUILD_ID }}
           DISCORD_HELP_CHANNEL_ID: ${{ vars.DISCORD_HELP_CHANNEL_ID }}
+          DISCORD_ARCHIVE_KEY: ${{ secrets.DISCORD_ARCHIVE_KEY }}
         run: |
+          if [ -z "$DISCORD_ARCHIVE_KEY" ]; then
+            echo "::error::DISCORD_ARCHIVE_KEY secret is not set. Without it the"
+            echo "::error::sync would commit the archive in plaintext. See README."
+            exit 1
+          fi
           if [ -z "$DISCORD_BOT_TOKEN" ]; then
             echo "::error::DISCORD_BOT_TOKEN secret is not set. See README."
             exit 1
@@ -59,7 +65,7 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p static/images/help
-          git add data/discord.sql static/images/help
+          git add data/discord.sql.enc static/images/help
           if git diff --cached --quiet; then
             echo "No changes from this sync."
             echo "changed=false" >> "$GITHUB_OUTPUT"

@@ -259,6 +259,119 @@ body {
     width: 100%; border-radius: 5px; box-shadow: 6px 6px 24px rgba(0,0,0,0.12);
 }
 
+/* Alternating feature rows: copy in one column, screenshot in the other,
+   with the media column mirrored on every other row. */
+.feature-split {
+    display: grid;
+    grid-template-columns: 2fr 3fr;
+    align-items: start;
+    gap: 3.5rem;
+    margin-top: 4rem;
+}
+
+.feature-split-reverse {
+    grid-template-columns: 3fr 2fr;
+}
+
+.feature-split-reverse .feature-split-text { order: 2; }
+.feature-split-reverse .feature-split-media { order: 1; }
+
+.feature-split-text h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 1rem;
+    line-height: 1.25;
+}
+
+.feature-split-text p {
+    font-size: 1.0625rem;
+    line-height: 1.75;
+    color: #666666;
+    margin: 0;
+}
+
+.feature-split-media .software-screenshot {
+    display: block;
+}
+
+@media (max-width: 860px) {
+    .feature-split,
+    .feature-split-reverse {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-top: 3rem;
+    }
+
+    /* Stacked, both rows read copy-then-screenshot; the mirroring is only
+       meaningful while there are two columns to mirror. */
+    .feature-split-reverse .feature-split-text,
+    .feature-split-reverse .feature-split-media { order: 0; }
+}
+
+/* GitHub project stats. One panel split into three, rather than three cards,
+   so it reads as a single fact strip next to the feature cards above it. */
+.gh-stats {
+    list-style: none;
+    margin: 3.5rem auto 0;
+    padding: 0;
+    max-width: 720px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: #ffffff;
+    border: 1px solid #e6e6e6;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.gh-stat {
+    padding: 1.75rem 1rem;
+    text-align: center;
+    border-left: 1px solid #f0f0f0;
+}
+
+.gh-stat:first-child {
+    border-left: 0;
+}
+
+.gh-stat i {
+    display: block;
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 0.65rem;
+}
+
+.gh-stat-value {
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    line-height: 1.1;
+}
+
+.gh-stat-label {
+    display: block;
+    margin-top: 0.4rem;
+    font-size: 0.9rem;
+    color: #666666;
+}
+
+@media (max-width: 640px) {
+    .gh-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .gh-stat {
+        border-left: 0;
+        border-top: 1px solid #f0f0f0;
+        padding: 1.35rem 1rem;
+    }
+
+    .gh-stat:first-child {
+        border-top: 0;
+    }
+}
+
 /* Section Styling */
 .section-padding {
     padding: 80px 0;
@@ -270,6 +383,10 @@ body {
     color: #1a1a1a;
     margin-bottom: 1rem;
     text-align: center;
+}
+
+.section-title.left{
+    text-align: left;;
 }
 
 .section-subtitle {

@@ -1,6 +1,5 @@
 {
-  "_help": "People and threads excluded from https://webodm.org/community/help/. Add an id here and the next sync removes the content, retroactively, including any mirrored images. To hard-delete someone's content immediately, run: python scripts/sync_discord.py --purge-user <id>",
-  "user_ids": [],
+  "_help": "People and threads excluded from https://webodm.org/community/help/. Add a Discord username or a thread id here and the next sync removes the content retroactively, including any mirrored images.",
   "usernames": [],
   "thread_ids": []
 }

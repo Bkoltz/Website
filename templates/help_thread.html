@@ -226,9 +226,10 @@
 
 {% block content %}
 {% set e = page.extra %}
-<div class="help-thread-page">
+<div class="help-thread-page" data-pagefind-body>
 
-  <nav class="help-crumbs" aria-label="Breadcrumb">
+  {# Chrome that would otherwise pollute every excerpt. #}
+  <nav class="help-crumbs" aria-label="Breadcrumb" data-pagefind-ignore>
     <a href="/">Home</a><span class="sep">/</span>
     <a href="/community/">Community</a><span class="sep">/</span>
     <a href="/community/help/">Help</a><span class="sep">/</span>
@@ -321,7 +322,7 @@
   {% endif %}
 
   <!-- CTA -->
-  <div class="help-cta">
+  <div class="help-cta" data-pagefind-ignore>
     <h2>Need more help?</h2>
     <p>This discussion happened in the WebODM community Discord. Join and ask your own question.</p>
     <a class="help-btn" href="https://discord.gg/RxHPXCSMBS" rel="noopener" target="_blank">
@@ -333,7 +334,7 @@
   </div>
 
   {% if e.related %}
-  <div class="help-related">
+  <div class="help-related" data-pagefind-ignore>
     <h2>Related questions</h2>
     <ul>
       {% for r in e.related %}

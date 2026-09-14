@@ -46,15 +46,33 @@
 
     <!-- Screenshots Section -->
     <section class="bg-transparent" style="padding-top: 40px">
-      <div class="container" style="max-width: 900px;">
-        <h2 class="section-title">Everything You Need</h2>
-        <p class="section-subtitle">To get started with drone mapping, minus the price tag.</p>
-        
-        <div class="text-center" style="margin-bottom: 40px">
-          <img src="/images/map.jpg" class="software-screenshot" alt="WebODM Map View">
+      <div class="container" style="max-width: 1140px;">
+        <div class="feature-split">
+          <div class="feature-split-text">
+            <h2 class="section-title left">Create Maps From Images</h2>
+            <p>
+              Drop in photos from any drone. WebODM builds a georeferenced
+              orthophoto and elevation model ready to measure,
+              annotate and export to your favorite GIS or CAD software.
+            </p>
+          </div>
+          <div class="feature-split-media">
+            <img src="/images/map.jpg" class="software-screenshot" alt="WebODM Map View">
+          </div>
         </div>
-        <div class="text-center">
-          <img src="/images/3d.jpg" class="software-screenshot" alt="WebODM 3D View">
+
+        <div class="feature-split feature-split-reverse">
+          <div class="feature-split-text">
+            <h2 class="section-title left">Generate 3D Models</h2>
+            <p>
+              WebODM turns images into textured 3D models, point clouds and gaussian
+              splats you can inspect in the browser, measure in real-world units
+              and share with others.
+            </p>
+          </div>
+          <div class="feature-split-media">
+            <img src="/images/3d.jpg" class="software-screenshot" alt="WebODM 3D View">
+          </div>
         </div>
       </div>
     </section>
@@ -150,7 +168,7 @@
             <div class="glass-card h-100 text-center">
               <img src="/images/features/images.png" alt="Any Format" class="feature-img">
               <h5 class="fw-bold">Any Format</h5>
-              <p>JPGs and TIFFs (8bit and 16bit), with or without EXIFs.</p>
+              <p>JPGs and TIFFs (8bit and 16bit), with or without EXIFs, video files.</p>
             </div>
           </div>
           
@@ -235,6 +253,30 @@
           </div> -->
         
         </div>
+
+        {# Refreshed by scripts/build_stats.py in CI before zola build.
+           required=false so a clone that has never run the script, or a
+           refresh that failed, simply omits the panel. #}
+        {% set stats = load_data(path="data/github_stats.json", required=false) %}
+        {% if stats %}
+        <ul class="gh-stats" aria-label="Project statistics">
+          <li class="gh-stat">
+            <i class="bi bi-star-fill" aria-hidden="true"></i>
+            <span class="gh-stat-value">{{ stats.stars | num_format }}</span>
+            <span class="gh-stat-label">GitHub stars</span>
+          </li>
+          <li class="gh-stat">
+            <i class="bi bi-people-fill" aria-hidden="true"></i>
+            <span class="gh-stat-value">{{ stats.contributors }}</span>
+            <span class="gh-stat-label">Contributors</span>
+          </li>
+          <li class="gh-stat">
+            <i class="bi bi-clock" aria-hidden="true"></i>
+            <span class="gh-stat-value">{{ stats.years }}+</span>
+            <span class="gh-stat-label">Years in development</span>
+          </li>
+        </ul>
+        {% endif %}
 
         <div class="text-center mt-5">
           <a href="/download" class="btn btn-primary btn-lg">

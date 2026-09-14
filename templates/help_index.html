@@ -26,6 +26,37 @@
     margin-bottom: 1.75rem;
   }
 
+  /* Lead and the New Post button share a row; the row owns the spacing below
+     so the two cannot drift apart when either one wraps. */
+  .help-lead-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .help-lead-row .lead { margin-bottom: 0; }
+
+  .help-new-post {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 8px;
+    padding: 0.55rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+
+  .help-new-post:hover { background: var(--primary-dark); color: #fff; }
+
   .help-list { list-style: none; padding: 0; margin: 0; }
   .help-item {
     position: relative;
@@ -125,6 +156,92 @@
   .help-notice h2 { font-size: 0.95rem; font-weight: 600; color: #1e293b; margin-bottom: 0.4rem; }
   .help-notice a { color: var(--primary-color); }
 
+  /* ── search ── */
+  .help-search {
+    position: relative;
+    margin-bottom: 1.75rem;
+  }
+
+  .help-search > .bi-search {
+    position: absolute;
+    left: 0.95rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    pointer-events: none;
+  }
+
+  #help-search-input {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    padding: 0.7rem 1rem 0.7rem 2.6rem;
+    font-size: 0.95rem;
+    color: #1e293b;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+
+  #help-search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(104, 147, 216, 0.18);
+  }
+
+  .help-search-results {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    max-height: 60vh;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+  }
+
+  .help-search-hit {
+    display: block;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-decoration: none;
+  }
+
+  .help-search-hit:last-child { border-bottom: 0; }
+
+  .help-search-hit:hover,
+  .help-search-hit[aria-selected="true"] { background: #f0f7ff; }
+
+  .help-search-hit .hit-title {
+    display: block;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: 0.93rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .help-search-hit .hit-excerpt {
+    display: block;
+    color: #64748b;
+    font-size: 0.83rem;
+    line-height: 1.55;
+  }
+
+  .help-search-hit mark {
+    background: #fef08a;
+    color: inherit;
+    padding: 0 0.1em;
+    border-radius: 2px;
+  }
+
+  .help-search-note {
+    padding: 0.9rem 1rem;
+    color: #64748b;
+    font-size: 0.87rem;
+  }
+
   @media (max-width: 640px) {
     .help-index-page { padding: 2rem 1rem 3rem; }
     .help-index-page h1 { font-size: 1.5rem; }
@@ -162,9 +279,27 @@
   </nav>
 
   <h1>Help &amp; Answers</h1>
-  <p class="lead">
-    Questions answered by the <a href="/community">community</a>.
-  </p>
+  <div class="help-lead-row">
+    <p class="lead">
+      Questions answered by the <a href="/community">community</a>.
+    </p>
+    <a class="help-new-post" href="https://discord.gg/RxHPXCSMBS"
+       rel="noopener" target="_blank">
+      <i class="bi bi-discord" aria-hidden="true"></i> New Post
+    </a>
+  </div>
+
+  {# Hidden until the Pagefind module actually loads: the index only exists
+     after `npx pagefind --site public` has run over a built site, which
+     `zola serve` never produces. Better to show nothing than a dead box. #}
+  <div class="help-search" hidden>
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <input id="help-search-input" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search"
+           role="combobox" aria-expanded="false" aria-autocomplete="list"
+           aria-controls="help-search-results" aria-label="Search answered questions">
+    <div id="help-search-results" class="help-search-results" role="listbox" hidden></div>
+  </div>
 
   {% if paginator.pages | length > 0 %}
   <ul class="help-list">
@@ -225,10 +360,146 @@
       <a href="https://discord.gg/RxHPXCSMBS" rel="noopener" target="_blank">Discord</a>
       so that they can be searched on the web. Authors own the rights to their messages. Only
       threads that received a reply are published. If you took part in a discussion and would
-      like your messages taken down, open an issue
-      on <a href="https://github.com/WebODM/Website/issues" rel="noopener" target="_blank">GitHub</a>.
+      like your messages taken down, add your username to <a href="https://github.com/WebODM/Website/edit/master/data/discord_optout.json" rel="noopener" target="_blank">this list on GitHub</a>.
       Deleting the original message on Discord also removes it here at the next sync.
     </p>
   </div>
 </div>
 {% endblock content %}
+
+{% block extra_js %}
+<script type="module">
+  // Autocomplete over the Pagefind index, the same mechanism Astro's docs use:
+  // a static index built from the rendered HTML at deploy time, queried
+  // entirely in the browser with no search backend.
+  const box   = document.querySelector('.help-search');
+  const input = document.getElementById('help-search-input');
+  const list  = document.getElementById('help-search-results');
+  const MAX_HITS = 6;
+
+  let pagefind = null;
+  let hits = [];
+  let active = -1;
+
+  try {
+    pagefind = await import('/pagefind/pagefind.js');
+    await pagefind.options({ excerptLength: 22 });
+    box.hidden = false;
+  } catch (err) {
+    // No index on disk (local `zola serve`); leave the box hidden.
+    console.info('Pagefind index unavailable, search disabled.');
+  }
+
+  // Pagefind marks matches with <mark>. This archive mirrors untrusted Discord
+  // text, so rebuild the fragment allowing only text and <mark> rather than
+  // handing the string to innerHTML.
+  function safeExcerpt(html) {
+    const parsed = new DOMParser().parseFromString(html, 'text/html').body;
+    const frag = document.createDocumentFragment();
+    for (const node of parsed.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        frag.append(node.textContent);
+      } else if (node.nodeName === 'MARK') {
+        const mark = document.createElement('mark');
+        mark.textContent = node.textContent;
+        frag.append(mark);
+      } else {
+        frag.append(node.textContent);
+      }
+    }
+    return frag;
+  }
+
+  function note(text) {
+    list.replaceChildren();
+    const p = document.createElement('p');
+    p.className = 'help-search-note';
+    p.textContent = text;
+    list.append(p);
+    open();
+  }
+
+  function render(results) {
+    hits = results;
+    active = -1;
+    if (!results.length) { note('No matching questions.'); return; }
+
+    list.replaceChildren();
+    results.forEach((r, i) => {
+      const a = document.createElement('a');
+      a.className = 'help-search-hit';
+      a.href = r.url;
+      a.id = 'help-hit-' + i;
+      a.setAttribute('role', 'option');
+      a.setAttribute('aria-selected', 'false');
+
+      const title = document.createElement('span');
+      title.className = 'hit-title';
+      title.textContent = (r.meta && r.meta.title) || 'Untitled';
+
+      const excerpt = document.createElement('span');
+      excerpt.className = 'hit-excerpt';
+      excerpt.append(safeExcerpt(r.excerpt || ''));
+
+      a.append(title, excerpt);
+      list.append(a);
+    });
+    open();
+  }
+
+  function open() {
+    list.hidden = false;
+    input.setAttribute('aria-expanded', 'true');
+  }
+
+  function close() {
+    list.hidden = true;
+    input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
+    active = -1;
+  }
+
+  function highlight(next) {
+    const options = [...list.querySelectorAll('.help-search-hit')];
+    if (!options.length) return;
+    if (active >= 0) options[active].setAttribute('aria-selected', 'false');
+    active = (next + options.length) % options.length;
+    const chosen = options[active];
+    chosen.setAttribute('aria-selected', 'true');
+    chosen.scrollIntoView({ block: 'nearest' });
+    input.setAttribute('aria-activedescendant', chosen.id);
+  }
+
+  input.addEventListener('focus', () => pagefind && pagefind.init());
+
+  input.addEventListener('input', async () => {
+    const term = input.value.trim();
+    if (!pagefind) return;
+    if (term.length < 2) { close(); return; }
+
+    pagefind.preload(term);
+    const search = await pagefind.debouncedSearch(term, {}, 200);
+    if (search === null) return;  // a newer keystroke superseded this one
+    const top = await Promise.all(
+      search.results.slice(0, MAX_HITS).map((r) => r.data())
+    );
+    render(top);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { close(); input.blur(); return; }
+    if (list.hidden) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); highlight(active + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); highlight(active - 1); }
+    else if (e.key === 'Enter') {
+      const options = [...list.querySelectorAll('.help-search-hit')];
+      const target = options[active >= 0 ? active : 0];
+      if (target) { e.preventDefault(); window.location.href = target.href; }
+    }
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!box.contains(e.target)) close();
+  });
+</script>
+{% endblock extra_js %}

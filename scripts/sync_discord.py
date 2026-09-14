@@ -370,10 +370,9 @@ def load_config(args: argparse.Namespace) -> dict:
 def load_optout() -> dict:
     """Read the hand-maintained opt-out list."""
     if not OPTOUT_FILE.exists():
-        return {"user_ids": [], "usernames": [], "thread_ids": []}
+        return {"usernames": [], "thread_ids": []}
     data = json.loads(OPTOUT_FILE.read_text())
     return {
-        "user_ids": {str(x) for x in data.get("user_ids", [])},
         "usernames": {str(x).lower() for x in data.get("usernames", [])},
         "thread_ids": {str(x) for x in data.get("thread_ids", [])},
     }
@@ -395,8 +394,7 @@ def upsert_user(conn, client: DiscordClient, author: dict, guild_id: str | None,
     username = author.get("username") or "unknown"
     global_name = author.get("global_name")
     is_bot = 1 if author.get("bot") else 0
-    opted = 1 if (uid in optout["user_ids"]
-                  or username.lower() in optout["usernames"]
+    opted = 1 if (username.lower() in optout["usernames"]
                   or (global_name or "").lower() in optout["usernames"]) else 0
 
     row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
@@ -1152,6 +1150,7 @@ def main() -> None:
     # The dump follows --db, so a fixture or test run writes its own .sql file
     # instead of clobbering the committed archive.
     db_sql = help_db.sql_path_for(args.db)
+    db_enc = help_db.enc_path_for(args.db)
     conn = help_db.ensure_db(args.db)
     optout = load_optout()
 
@@ -1160,6 +1159,7 @@ def main() -> None:
         recompute_publishable(conn, optout)
         conn.commit()
         help_db.dump_sql(conn, db_sql)
+        help_db.seal_dump(db_sql, db_enc)
         return
 
     token = os.environ.get("DISCORD_BOT_TOKEN")
@@ -1295,6 +1295,7 @@ def main() -> None:
             conn.commit()
             conn.execute("VACUUM")
             help_db.dump_sql(conn, db_sql)
+            help_db.seal_dump(db_sql, db_enc)
 
         print(
             f"\nDone: {stats.threads_seen} threads seen, {stats.threads_updated} updated, "

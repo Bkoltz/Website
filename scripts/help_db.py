@@ -15,7 +15,11 @@ Requirements: none (standard library only)
 
 import re
 import sqlite3
+import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+import archive_crypto
 
 ROOT_DIR = Path(__file__).parent.parent
 DB_FILE = ROOT_DIR / "data" / "discord.sqlite3"
@@ -31,7 +35,18 @@ def sql_path_for(db_path: Path) -> Path:
     return Path(db_path).with_suffix(".sql")
 
 
+def enc_path_for(db_path: Path) -> Path:
+    """
+    The encrypted dump beside a database file: discord.sqlite3 -> discord.sql.enc.
+
+    This is the file that gets committed; the plaintext .sql next to it is a
+    local working copy and is gitignored. See scripts/archive_crypto.py.
+    """
+    return Path(db_path).with_suffix(".sql.enc")
+
+
 DB_SQL = sql_path_for(DB_FILE)
+DB_ENC = enc_path_for(DB_FILE)
 
 SCHEMA_VERSION = 1
 
@@ -300,6 +315,35 @@ def restore_sql(src: Path, dest_db: Path) -> sqlite3.Connection:
     return conn
 
 
+def seal_dump(sql_path: Path, enc_path: Path | None = None) -> Path | None:
+    """
+    Encrypt a plaintext dump alongside itself, when a key is configured.
+
+    Returns the path written, or None when no key is set -- in which case the
+    plaintext dump stands alone and the caller is running unencrypted.
+    """
+    key = archive_crypto.load_key(required=False)
+    if key is None:
+        return None
+    enc_path = enc_path or Path(str(sql_path) + ".enc")
+    archive_crypto.encrypt_file(sql_path, enc_path, key)
+    return enc_path
+
+
+def unseal_dump(enc_path: Path, sql_path: Path) -> bool:
+    """
+    Decrypt a committed archive into its plaintext working copy.
+
+    Returns False when no key is configured, so a clone without the key builds
+    an empty help section rather than failing outright.
+    """
+    key = archive_crypto.load_key(required=False)
+    if key is None:
+        return False
+    archive_crypto.decrypt_file(enc_path, sql_path, key)
+    return True
+
+
 def ensure_db(db_path: Path = DB_FILE,
               sql_path: Path | None = None) -> sqlite3.Connection:
     """
@@ -312,6 +356,15 @@ def ensure_db(db_path: Path = DB_FILE,
     db_path never reads or writes the committed archive.
     """
     sql_path = sql_path_for(db_path) if sql_path is None else sql_path
+
+    # The encrypted file is what git carries, so it is the one that can be
+    # newer than the local plaintext after a pull. Decrypt before comparing.
+    enc_path = enc_path_for(db_path)
+    if enc_path.exists() and (
+        not sql_path.exists() or enc_path.stat().st_mtime > sql_path.stat().st_mtime
+    ):
+        unseal_dump(enc_path, sql_path)
+
     if sql_path.exists() and (
         not db_path.exists() or sql_path.stat().st_mtime > db_path.stat().st_mtime
     ):
@@ -351,6 +404,9 @@ def main() -> None:
         migrate(conn)
         dump_sql(conn, sql_file)
         print(f"Wrote {sql_file}")
+        sealed = seal_dump(sql_file, enc_path_for(db_file))
+        if sealed:
+            print(f"Wrote {sealed}")
     elif action == "restore":
         restore_sql(sql_file, db_file)
         print(f"Rebuilt {db_file} from {sql_file.name}")

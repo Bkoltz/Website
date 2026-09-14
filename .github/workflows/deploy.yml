@@ -39,14 +39,33 @@ jobs:
 
       - name: Build gallery
         run: |
-          pip install Pillow requests
+          pip install Pillow requests cryptography
           python scripts/build_gallery.py
 
+      # Refreshes data/github_stats.json for the home page panel. GITHUB_TOKEN
+      # lifts the API rate limit from 60/hour to 5000/hour. The script keeps the
+      # committed values and exits 0 if GitHub is unreachable, so a rate limit
+      # or an outage never fails the deploy.
+      - name: Refresh GitHub stats
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/build_stats.py
+
+      # Decrypts data/discord.sql.enc in-process; without the key this writes
+      # an empty help section rather than failing the whole deploy.
       - name: Build help pages
+        env:
+          DISCORD_ARCHIVE_KEY: ${{ secrets.DISCORD_ARCHIVE_KEY }}
         run: python scripts/build_help_pages.py
 
       - name: Build with Zola
         run: zola build
+
+      # Builds the static search index from the rendered HTML into public/pagefind/.
+      # Must run after zola build and before the artifact upload, or the help
+      # search box stays hidden in production.
+      - name: Build search index
+        run: npx --yes pagefind@1 --site public
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

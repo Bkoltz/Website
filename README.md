@@ -54,7 +54,7 @@ findable by search engines.
 Discord REST API
       │  scripts/sync_discord.py       (weekly, or on demand)
       ▼
-data/discord.sql                       committed text dump (source of truth)
+data/discord.sql.enc                   committed archive (encrypted)
 static/images/help/                    committed mirrored images
       │  scripts/build_help_pages.py   (runs on every build)
       ▼
@@ -111,6 +111,32 @@ python scripts/sync_discord.py --full                # re-read every thread
 
 Run the renderer tests with `python -m unittest discover -s scripts -p 'test_*.py'`.
 
+### Search
+
+The help index carries an autocomplete search box backed by
+[Pagefind](https://pagefind.app), the same mechanism the Astro documentation
+uses: a static index built from the rendered HTML at deploy time and queried
+entirely in the browser, with no search backend and no API key.
+
+Only the thread pages are indexed. `data-pagefind-body` on the thread template
+is what scopes it -- once that attribute appears anywhere on a site, Pagefind
+indexes *only* pages that carry it, so the marketing pages stay out of the
+results by construction.
+
+`zola serve` never writes a `public/` directory, so there is no index during
+normal authoring and the search box stays hidden rather than silently returning
+nothing. To exercise search locally, build the site and index it:
+
+```bash
+python scripts/build_help_pages.py
+zola build
+npx pagefind --site public
+python3 -m http.server -d public 2222   # http://127.0.0.1:2222/community/help/
+```
+
+In CI this is the `Build search index` step in `deploy.yml`, which has to run
+after `zola build` and before the artifact upload.
+
 ### One-time Discord setup
 
 1. Create an application at <https://discord.com/developers/applications>.
@@ -140,15 +166,58 @@ other than the person who asked, a question of at least 80 characters, and at
 least 350 characters of discussion overall. Thin threads are skipped entirely
 rather than marked `noindex`, which also keeps them out of the sitemap.
 
+### The committed archive is encrypted
+
+`data/discord.sql.enc` is what git carries. The plaintext `data/discord.sql` is
+a local working copy and is gitignored.
+
+The reason is the removal process below. Removal is retroactive for the site and
+for the current dump, but git history is permanent: a plaintext archive would
+keep every message ever synced readable by anyone who clones the repository,
+including messages later taken down on request. Encrypting the committed file
+narrows that from "public forever" to "readable by key holders".
+
+Generate a key once and store it as the `DISCORD_ARCHIVE_KEY` repository secret:
+
+```bash
+python scripts/archive_crypto.py keygen
+```
+
+Export the same value locally to work with the archive. Without it,
+`build_help_pages.py` says so and writes an empty help section, so the rest of
+the site still builds for contributors who do not hold the key.
+
+The whole file is encrypted as one unit with AES-256-GCM, gzipped first (1.1 MB
+-> 193 KB, so a weekly commit costs about 193 KB rather than 1.1 MB). It is
+deliberately *not* encrypted line by line: that would preserve git's line diffs,
+but only by being deterministic, so every commit would advertise exactly which
+rows changed -- which, correlated against the live site, reveals what was
+removed and when. See the module docstring in `scripts/archive_crypto.py`.
+
+Losing the key is recoverable but tedious: the archive is a mirror, so
+`python scripts/sync_discord.py --full` rebuilds it from Discord.
+
 ### Removing someone's content
 
-Add their user id or username to `data/discord_optout.json` and the next sync
-redacts their messages and drops any thread they started, retroactively, along
-with the mirrored images. For an immediate hard delete:
+Add their Discord username to `usernames` in `data/discord_optout.json`, or a
+single thread to `thread_ids`, and the next sync redacts their messages and
+drops any thread they started, retroactively, along with the mirrored images.
+Username matching is case-insensitive and also tests the Discord global name.
+
+```json
+{ "usernames": ["someone"], "thread_ids": ["1234567890"] }
+```
+
+For an immediate hard delete, which removes the message rows and unlinks the
+mirrored image files rather than waiting for the next sync:
 
 ```bash
 python scripts/sync_discord.py --purge-user <discord_user_id>
 ```
+
+The purge takes a numeric user id, not a username, since it addresses rows that
+are already stored. It is not a substitute for the opt-out list: add the person
+to `usernames` as well, or a later sync will mirror them again.
 
 Messages deleted on Discord disappear from the site at the next sync
 automatically. The `/community/help/` page explains this to readers and gives a

@@ -25,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
+import archive_crypto
 import help_db
 from discord_markdown import RenderContext, plain_text, render
 
@@ -126,10 +127,9 @@ def human_date(value: str | None) -> str:
 def load_optout() -> dict:
     """Read the opt-out list, applied again at build time as a second gate."""
     if not OPTOUT_FILE.exists():
-        return {"user_ids": set(), "usernames": set(), "thread_ids": set()}
+        return {"usernames": set(), "thread_ids": set()}
     data = json.loads(OPTOUT_FILE.read_text())
     return {
-        "user_ids": {str(x) for x in data.get("user_ids", [])},
         "usernames": {str(x).lower() for x in data.get("usernames", [])},
         "thread_ids": {str(x) for x in data.get("thread_ids", [])},
     }
@@ -170,8 +170,7 @@ def author_of(conn, user_id, optout: dict) -> dict:
     row = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
     if not row:
         return {"name": "Community member", "avatar": ""}
-    if row["opted_out"] or row["id"] in optout["user_ids"] \
-            or (row["username"] or "").lower() in optout["usernames"]:
+    if row["opted_out"] or (row["username"] or "").lower() in optout["usernames"]:
         return {"name": "Community member", "avatar": ""}
     avatar = media_for(conn, row["avatar_media_id"])
     return {"name": row["display_name"], "avatar": avatar["src"] if avatar else ""}
@@ -500,7 +499,7 @@ def render_index_page(threads: list[dict]) -> str:
         'template = "help_index.html"',
         'page_template = "help_thread.html"',
         'sort_by = "date"',
-        "paginate_by = 50",
+        "paginate_by = 20",
         'paginate_path = "page"',
         "",
         "[extra]",
@@ -542,11 +541,25 @@ def main() -> None:
 
     OUT_DIR = args.out
 
-    if not args.db.exists() and not help_db.sql_path_for(args.db).exists():
+    # The encrypted dump counts as an archive: ensure_db decrypts it when the
+    # key is set. Omitting it here would skip straight to the empty section.
+    have_archive = (args.db.exists()
+                    or help_db.sql_path_for(args.db).exists()
+                    or help_db.enc_path_for(args.db).exists())
+    if not have_archive:
         print("No Discord archive yet; writing an empty help section.")
         OUT_DIR.mkdir(parents=True, exist_ok=True)
         (OUT_DIR / "_index.md").write_text(render_index_page([]), encoding="utf-8")
         return
+
+    # An encrypted archive with no key is the normal state for a contributor
+    # who does not hold the secret. Say so plainly: otherwise the only signal
+    # is a build that quietly reports zero pages.
+    if (help_db.enc_path_for(args.db).exists()
+            and not archive_crypto.load_key(required=False)):
+        print(f"Note: the archive is encrypted and {archive_crypto.KEY_ENV} is "
+              "not set, so the help section will be built from whatever local "
+              "data exists (usually nothing).")
 
     conn = help_db.ensure_db(args.db)
     optout = load_optout()
