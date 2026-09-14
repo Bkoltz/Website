@@ -494,8 +494,7 @@ def render_index_page(threads: list[dict]) -> str:
         "+++",
         'title = "WebODM Help & Answers"',
         'description = "Answers to WebODM questions from the community '
-        'Discord: processing errors, GCPs, point clouds, orthophotos, '
-        'installation and more."',
+        'Discord."',
         'template = "help_index.html"',
         'page_template = "help_thread.html"',
         'sort_by = "date"',
