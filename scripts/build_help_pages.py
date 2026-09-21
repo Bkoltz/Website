@@ -551,14 +551,13 @@ def main() -> None:
         (OUT_DIR / "_index.md").write_text(render_index_page([]), encoding="utf-8")
         return
 
-    # An encrypted archive with no key is the normal state for a contributor
-    # who does not hold the secret. Say so plainly: otherwise the only signal
-    # is a build that quietly reports zero pages.
-    if (help_db.enc_path_for(args.db).exists()
-            and not archive_crypto.load_key(required=False)):
-        print(f"Note: the archive is encrypted and {archive_crypto.KEY_ENV} is "
-              "not set, so the help section will be built from whatever local "
-              "data exists (usually nothing).")
+    if help_db.enc_path_for(args.db).exists():
+        try:
+            archive_crypto.load_key()
+        except archive_crypto.ArchiveCryptoError as exc:
+            raise SystemExit(
+                f"Error: cannot read the encrypted Discord archive: {exc}"
+            ) from exc
 
     conn = help_db.ensure_db(args.db)
     optout = load_optout()
