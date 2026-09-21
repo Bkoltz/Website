@@ -7,6 +7,9 @@ on:
   # Called by sync-discord.yml: a push made with the default GITHUB_TOKEN does
   # not trigger other workflows, so the sync job invokes this one directly.
   workflow_call:
+    secrets:
+      DISCORD_ARCHIVE_KEY:
+        required: true
 
 permissions:
   contents: read

@@ -83,6 +83,8 @@ jobs:
     needs: sync
     if: needs.sync.outputs.changed == 'true'
     uses: ./.github/workflows/deploy.yml
+    secrets:
+      DISCORD_ARCHIVE_KEY: ${{ secrets.DISCORD_ARCHIVE_KEY }}
     permissions:
       contents: read
       pages: write
