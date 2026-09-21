@@ -1,89 +1,89 @@
-# name: Sync Discord help threads
+name: Sync Discord help threads
 
-# on:
-#   schedule:
-#     # Mondays 04:17 UTC. Off the hour, since scheduled runs queue at busy times.
-#     - cron: '17 4 * * 1'
-#   workflow_dispatch:
-#     inputs:
-#       full:
-#         description: 'Re-crawl every thread instead of only changed ones'
-#         type: boolean
-#         default: false
-#       allow_mass_delete:
-#         description: 'Permit a sync that removes a large share of published pages'
-#         type: boolean
-#         default: false
+on:
+  schedule:
+    # Mondays 04:17 UTC. Off the hour, since scheduled runs queue at busy times.
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 'Re-crawl every thread instead of only changed ones'
+        type: boolean
+        default: false
+      allow_mass_delete:
+        description: 'Permit a sync that removes a large share of published pages'
+        type: boolean
+        default: false
 
-# permissions:
-#   contents: write
+permissions:
+  contents: write
 
-# concurrency:
-#   group: discord-sync
-#   cancel-in-progress: false
+concurrency:
+  group: discord-sync
+  cancel-in-progress: false
 
-# jobs:
-#   sync:
-#     runs-on: ubuntu-latest
-#     outputs:
-#       changed: ${{ steps.commit.outputs.changed }}
-#     steps:
-#       - name: Checkout
-#         uses: actions/checkout@v4
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-#       - name: Set up Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: '3.12'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-#       - name: Install dependencies
-#         run: pip install Pillow requests cryptography
+      - name: Install dependencies
+        run: pip install Pillow requests cryptography
 
-#       - name: Sync from Discord
-#         env:
-#           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-#           DISCORD_GUILD_ID: ${{ vars.DISCORD_GUILD_ID }}
-#           DISCORD_HELP_CHANNEL_ID: ${{ vars.DISCORD_HELP_CHANNEL_ID }}
-#           DISCORD_ARCHIVE_KEY: ${{ secrets.DISCORD_ARCHIVE_KEY }}
-#         run: |
-#           if [ -z "$DISCORD_ARCHIVE_KEY" ]; then
-#             echo "::error::DISCORD_ARCHIVE_KEY secret is not set. Without it the"
-#             echo "::error::sync would commit the archive in plaintext. See README."
-#             exit 1
-#           fi
-#           if [ -z "$DISCORD_BOT_TOKEN" ]; then
-#             echo "::error::DISCORD_BOT_TOKEN secret is not set. See README."
-#             exit 1
-#           fi
-#           python scripts/sync_discord.py \
-#             ${{ inputs.full && '--full' || '' }} \
-#             ${{ inputs.allow_mass_delete && '--allow-mass-delete' || '' }}
+      - name: Sync from Discord
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_ARCHIVE_KEY: ${{ secrets.DISCORD_ARCHIVE_KEY }}
+        run: |
+          if [ -z "$DISCORD_ARCHIVE_KEY" ]; then
+            echo "::error::DISCORD_ARCHIVE_KEY secret is not set. Without it the"
+            echo "::error::sync would commit the archive in plaintext. See README."
+            exit 1
+          fi
+          if [ -z "$DISCORD_BOT_TOKEN" ]; then
+            echo "::error::DISCORD_BOT_TOKEN secret is not set. See README."
+            exit 1
+          fi
+          export DISCORD_GUILD_ID="$(jq -er '.guild_id | strings | select(length > 0)' data/discord_config.json)"
+          export DISCORD_HELP_CHANNEL_ID="$(jq -er '.help_channel_id | strings | select(length > 0)' data/discord_config.json)"
+          python scripts/sync_discord.py \
+            ${{ inputs.full && '--full' || '' }} \
+            ${{ inputs.allow_mass_delete && '--allow-mass-delete' || '' }}
 
-#       - name: Commit archive
-#         id: commit
-#         run: |
-#           git config user.name  "github-actions[bot]"
-#           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-#           mkdir -p static/images/help
-#           git add data/discord.sql.enc static/images/help
-#           if git diff --cached --quiet; then
-#             echo "No changes from this sync."
-#             echo "changed=false" >> "$GITHUB_OUTPUT"
-#           else
-#             git commit -m "Sync Discord help threads"
-#             git pull --rebase --autostash origin master
-#             git push
-#             echo "changed=true" >> "$GITHUB_OUTPUT"
-#           fi
+      - name: Commit archive
+        id: commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p static/images/help
+          git add data/discord.sql.enc static/images/help
+          if git diff --cached --quiet; then
+            echo "No changes from this sync."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "Sync Discord help threads"
+            git pull --rebase --autostash origin master
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
-#   # A push made with GITHUB_TOKEN does not trigger deploy.yml's `on: push`,
-#   # so the deploy is invoked explicitly as a reusable workflow instead. This
-#   # avoids needing a personal access token.
-#   deploy:
-#     needs: sync
-#     if: needs.sync.outputs.changed == 'true'
-#     uses: ./.github/workflows/deploy.yml
-#     permissions:
-#       contents: read
-#       pages: write
-#       id-token: write
+  # A push made with GITHUB_TOKEN does not trigger deploy.yml's `on: push`,
+  # so the deploy is invoked explicitly as a reusable workflow instead. This
+  # avoids needing a personal access token.
+  deploy:
+    needs: sync
+    if: needs.sync.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

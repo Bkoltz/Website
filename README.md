@@ -156,8 +156,8 @@ after `zola build` and before the artifact upload.
    History* on `#help` — a channel-level overwrite can deny what the
    server-wide role grants.
 7. Enable Developer Mode in Discord, right-click the server and `#help` →
-   **Copy ID**, and set them either in `data/discord_config.json` or as the
-   repository variables `DISCORD_GUILD_ID` and `DISCORD_HELP_CHANNEL_ID`.
+   **Copy ID**, then set the IDs in `data/discord_config.json`. The scheduled
+   GitHub Actions workflow reads that file at runtime.
 
 ### What gets published
 
