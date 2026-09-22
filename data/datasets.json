@@ -168,6 +168,18 @@
     "notes": ""
   },
   {
+    "name": "Ledge Top Drone Services",
+    "url": "https://drive.google.com/drive/folders/1N8XczrrE31dOVQr_5372Y464H94ITeEE?usp=sharing",
+    "images": 4805,
+    "size_mb": 30054,
+    "dronedb": "",
+    "gps": true,
+    "gcp": false,
+    "rtk": true,
+    "recommended": false,
+    "notes": "3D Model of church with DJI M4E and Manifold 3"
+  },
+  {
     "name": "Lewis",
     "url": "https://github.com/OpenDroneMap/odm_data_lewis/tree/master",
     "images": 145,
